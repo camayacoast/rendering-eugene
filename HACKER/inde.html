@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Steganographic Encoder and Decoder</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .container {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      margin: 20px;
+    }
+    .section {
+      flex: 1;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      background-color: #f5f5f5;
+    }
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      resize: vertical;
+    }
+    img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+    .image-container {
+      max-width: 500px;
+      max-height: 500px;
+      overflow: hidden;
+      margin: auto;
+    }
+    button {
+      display: block;
+      margin: 10px auto;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Steganographic Encoder and Decoder</h1>
+
+   <div class="container">
+    <div class="section">
+      <h2>Encoder</h2>
+      <input type="file" id="imageInput">
+      <textarea id="messageInput" placeholder="Enter message to encode"></textarea>
+      <button id="encodeButton">Encode</button>
+      <a id="downloadLink" style="display: none;">Download Encoded Image</a>
+    </div>
+    <div class="section">
+      <h2>Decoder</h2>
+      <input type="file" id="decodeImageInput">
+      <div class="image-container">
+        <img id="encodedImage">
+      </div>
+      <button id="decodeButton">Decode</button>
+      <textarea id="decodedMessage" placeholder="Decoded message"></textarea>
+    </div>
+  </div>
+
+   <script>
+  document.getElementById("encodeButton").addEventListener("click", function() {
+  const imageInput = document.getElementById("imageInput");
+  const messageInput = document.getElementById("messageInput");
+  const encodedImage = document.getElementById("encodedImage");
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+
+      const message = messageInput.value;
+      let messageIndex = 0;
+
+      for (let y = 0; y < img.height; y++) {
+        for (let x = 0; x < img.width; x++) {
+          const pixel = ctx.getImageData(x, y, 1, 1);
+          if (messageIndex < message.length) {
+            const charCode = message.charCodeAt(messageIndex++);
+            pixel.data[0] = (pixel.data[0] & 0xFE) | ((charCode >> 7) & 1);
+            pixel.data[1] = (pixel.data[1] & 0xFE) | ((charCode >> 6) & 1);
+            pixel.data[2] = (pixel.data[2] & 0xFE) | ((charCode >> 5) & 1);
+          }
+          ctx.putImageData(pixel, x, y);
+        }
+      }
+
+      encodedImage.src = canvas.toDataURL();
+    };
+
+    img.src = event.target.result;
+  };
+
+  reader.readAsDataURL(imageInput.files[0]);
+});
+
+
+document.getElementById("decodeButton").addEventListener("click", function() {
+  const decodeImageInput = document.getElementById("decodeImageInput");
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+
+      let decodedText = "";
+      for (let y = 0; y < img.height; y++) {
+        for (let x = 0; x < img.width; x++) {
+          const pixel = ctx.getImageData(x, y, 1, 1);
+          const charCode = ((pixel.data[0] & 1) << 7) |
+                           ((pixel.data[1] & 1) << 6) |
+                           ((pixel.data[2] & 1) << 5);
+          if (charCode !== 0) {
+            decodedText += String.fromCharCode(charCode);
+          }
+        }
+      }
+
+      const decodedMessage = document.getElementById("decodedMessage");
+      decodedMessage.value = decodedText;
+    };
+
+    img.src = event.target.result;
+  };
+
+  reader.readAsDataURL(decodeImageInput.files[0]);
+});
+  </script>
+</body>
+</html>
